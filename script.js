@@ -5,7 +5,6 @@ import { getContext } from '../../../extensions.js';
 (async function() {
     const { executeSlashCommandsWithOptions } = SillyTavern.getContext();
 
-    // The function to send our messages to the chat using the /sys slash command
     const sendSysMessage = (message) => {
         executeSlashCommandsWithOptions(`/sys ${message}`);
     };
@@ -17,7 +16,6 @@ import { getContext } from '../../../extensions.js';
 
     // --- Game Logic Functions ---
     const createDeck = () => {
-        sendSysMessage('[Blackjack] Creating and shuffling a new deck...');
         const suits = ['♥', '♦', '♣', '♠'];
         const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
         const newDeck = [];
@@ -45,11 +43,9 @@ import { getContext } from '../../../extensions.js';
     const getHandString = (hand) => hand.map(card => `${card.rank}${card.suit}`).join(', ');
 
     const dealerPlay = () => {
-        sendSysMessage('[Blackjack] Dealer turn...');
         while (calculateScore(dealerHand) < 17) {
             dealerHand.push(deck.pop());
         }
-        sendSysMessage('[Blackjack] Dealer stands or busts.');
     };
 
     const resolveGame = async () => {
@@ -72,17 +68,14 @@ import { getContext } from '../../../extensions.js';
         const dealerHandString = getHandString(dealerHand);
         gameInProgress = false;
 
-        const message = `**BLACKJACK GAME RESULT**
+        return `**BLACKJACK GAME RESULT**
 Your hand: ${getHandString(playerHand)} (Score: ${playerScore})
 Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
 ***${result}***`;
-
-        sendSysMessage(message);
     };
 
     // --- Command Handlers ---
     const startBlackjack = async () => {
-        sendSysMessage('[Blackjack] `/blackjack` command called. Starting new game...');
         gameInProgress = true;
         deck = createDeck();
         playerHand = [deck.pop(), deck.pop()];
@@ -96,30 +89,29 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
     };
 
     const hit = async () => {
-        sendSysMessage('[Blackjack] `/hit` command called.');
         if (!gameInProgress) {
             return 'No game in progress. Use **/blackjack** to start a new game.';
         }
         playerHand.push(deck.pop());
         const playerScore = calculateScore(playerHand);
-        const playerHandString = getHandString(playerHand);
-        let message = `You took another card. Your new hand is: ${playerHandString} (Score: ${playerScore}).`;
-
-        sendSysMessage(message);
 
         if (playerScore > 21) {
-            await resolveGame();
+            const finalMessage = `You took another card. Your new hand is: ${getHandString(playerHand)} (Score: ${playerScore}).\n\n` + await resolveGame();
+            sendSysMessage(finalMessage);
+        } else {
+            const message = `You took another card. Your new hand is: ${getHandString(playerHand)} (Score: ${playerScore}).`;
+            sendSysMessage(message);
         }
         return '';
     };
 
     const stand = async () => {
-        sendSysMessage('[Blackjack] `/stand` command called.');
         if (!gameInProgress) {
             return 'No game in progress. Use **/blackjack** to start a new game.';
         }
         dealerPlay();
-        await resolveGame();
+        const message = await resolveGame();
+        sendSysMessage(message);
         return '';
     };
 
