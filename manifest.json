@@ -1,0 +1,7 @@
+{
+    "display_name": "Blackjack Game",
+    "author": "Your Name",
+    "version": "1.0.0",
+    "js": "script.js",
+    "css": "style.css"
+}
