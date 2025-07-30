@@ -1,3 +1,7 @@
+import { SlashCommand, SlashCommandParser } from '../../../../script.js';
+
+// --- The Blackjack Game Logic (This part is unchanged) ---
+
 // A simple representation of a card deck
 const createDeck = () => {
     const suits = ['♥', '♦', '♣', '♠'];
@@ -49,6 +53,10 @@ const startGame = () => {
 
 // Creates and injects the game UI into the page
 const createGameUI = () => {
+    // Prevent multiple game windows
+    if (document.getElementById('blackjack-container')) {
+        document.getElementById('blackjack-container').remove();
+    }
     const gameContainer = document.createElement('div');
     gameContainer.id = 'blackjack-container';
     gameContainer.innerHTML = `
@@ -104,6 +112,8 @@ const playerHit = () => {
 
 // Handles the player choosing to "Stand"
 const playerStand = () => {
+    document.getElementById('hit-button').disabled = true;
+    document.getElementById('stand-button').disabled = true;
     // Dealer's turn
     let dealerScore = calculateScore(dealerHand);
     while (dealerScore < 17) {
@@ -139,15 +149,25 @@ const endGame = (resultText) => {
     sendButton.click();
 
     // Clean up the UI
-    document.getElementById('blackjack-container').remove();
+    setTimeout(() => {
+        if(document.getElementById('blackjack-container')) {
+            document.getElementById('blackjack-container').remove();
+        }
+    }, 500); // Small delay to ensure message sends before UI disappears
 };
 
-// Register the slash command once SillyTavern is ready
+// --- Command Registration (The Corrected Part) ---
+
+// We wait for the APP_READY event to make sure all SillyTavern systems are loaded.
 SillyTavern.getContext().eventSource.on(SillyTavern.getContext().event_types.APP_READY, () => {
-    const command = {
+    // Use the new method to register the command
+    SlashCommandParser.addCommandObject(SlashCommand.fromProps({
         name: 'blackjack',
-        callback: startGame, // The function to call when the command is used
-        helpString: 'Starts a new game of blackjack.',
-    };
-    SillyTavern.SlashCommandParser.addCommand(command);
+        callback: (namedArgs, unnamedArgs) => {
+            startGame(); // The command simply starts our game
+            return ''; // Return an empty string as we are not replacing text in the input
+        },
+        returns: 'a blackjack game UI', // Description of what the command does
+        helpString: 'Type /blackjack to start a new game.',
+    }));
 });
