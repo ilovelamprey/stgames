@@ -3,15 +3,21 @@ import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
 import { getContext } from '../../../extensions.js';
 
 (async function() {
-    console.log('[Blackjack] Extension script started.');
+    const { executeSlashCommandsWithOptions } = SillyTavern.getContext();
 
-    const { sendSystemMessage } = SillyTavern.getContext();
+    // The function to send our messages to the chat using the /sys slash command
+    const sendSysMessage = (message) => {
+        executeSlashCommandsWithOptions(`/sys ${message}`);
+    };
+
+    sendSysMessage('[Blackjack] Extension script started.');
 
     // --- Blackjack Game State ---
     let deck = [], playerHand = [], dealerHand = [], gameInProgress = false;
 
     // --- Game Logic Functions ---
     const createDeck = () => {
+        sendSysMessage('[Blackjack] Creating and shuffling a new deck...');
         const suits = ['♥', '♦', '♣', '♠'];
         const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
         const newDeck = [];
@@ -39,9 +45,11 @@ import { getContext } from '../../../extensions.js';
     const getHandString = (hand) => hand.map(card => `${card.rank}${card.suit}`).join(', ');
 
     const dealerPlay = () => {
+        sendSysMessage('[Blackjack] Dealer turn...');
         while (calculateScore(dealerHand) < 17) {
             dealerHand.push(deck.pop());
         }
+        sendSysMessage('[Blackjack] Dealer stands or busts.');
     };
 
     const resolveGame = async () => {
@@ -69,12 +77,12 @@ Your hand: ${getHandString(playerHand)} (Score: ${playerScore})
 Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
 ***${result}***`;
 
-        // This is the key change: a direct function call to add a system message
-        sendSystemMessage(message);
+        sendSysMessage(message);
     };
 
     // --- Command Handlers ---
     const startBlackjack = async () => {
+        sendSysMessage('[Blackjack] `/blackjack` command called. Starting new game...');
         gameInProgress = true;
         deck = createDeck();
         playerHand = [deck.pop(), deck.pop()];
@@ -83,11 +91,12 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
         const dealerCardString = getHandString([dealerHand[0]]);
         const message = `Let's play blackjack! You were dealt: ${getHandString(playerHand)} (Score: ${playerScore}). The dealer's visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end your turn.`;
         
-        sendSystemMessage(message);
+        sendSysMessage(message);
         return '';
     };
 
     const hit = async () => {
+        sendSysMessage('[Blackjack] `/hit` command called.');
         if (!gameInProgress) {
             return 'No game in progress. Use **/blackjack** to start a new game.';
         }
@@ -96,7 +105,7 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
         const playerHandString = getHandString(playerHand);
         let message = `You took another card. Your new hand is: ${playerHandString} (Score: ${playerScore}).`;
 
-        sendSystemMessage(message);
+        sendSysMessage(message);
 
         if (playerScore > 21) {
             await resolveGame();
@@ -105,6 +114,7 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
     };
 
     const stand = async () => {
+        sendSysMessage('[Blackjack] `/stand` command called.');
         if (!gameInProgress) {
             return 'No game in progress. Use **/blackjack** to start a new game.';
         }
@@ -134,8 +144,8 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
             callback: stand,
         }));
         
-        console.log('[Blackjack] All slash commands registered successfully.');
+        sendSysMessage('[Blackjack] All slash commands registered successfully.');
     } catch (e) {
-        console.error('[Blackjack] ERROR: Failed to register slash commands.', e);
+        sendSysMessage('[Blackjack] ERROR: Failed to register slash commands.');
     }
 })();
