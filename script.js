@@ -6,7 +6,8 @@ import { getContext } from '../../../extensions.js';
     console.log('[Blackjack] Extension script started.');
 
     // --- Core Context ---
-    const { eventSource, event_types } = getContext();
+    
+    const { eventSource, event_types } = SillyTavern.getContext();
 
     // --- Blackjack Game State ---
     let deck = [], playerHand = [], dealerHand = [], gameInProgress = false;
@@ -24,6 +25,8 @@ import { getContext } from '../../../extensions.js';
                 newDeck.push({ suit, rank, value });
             }
         }
+            console.log('[Blackjack] Deck made.');
+
         return newDeck.sort(() => Math.random() - 0.5);
     };
 
@@ -73,6 +76,8 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
         console.log('[Blackjack] Game resolved. Message:', message);
         return message;
     };
+
+    
 
     // --- Command Handlers ---
     const startBlackjack = async () => {
