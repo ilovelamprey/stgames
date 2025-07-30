@@ -4,9 +4,6 @@ import { getContext } from '../../../extensions.js';
 
 (async function() {
     const { executeSlashCommandsWithOptions, name1 } = SillyTavern.getContext();
-    
-    console.log(`${user}`);
-    console.log(`${char}`);
 
     const sendSysMessage = (message) => {
         executeSlashCommandsWithOptions(`/sys ${message}`);
