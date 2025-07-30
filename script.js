@@ -1,42 +1,14 @@
 (async function() {
     console.log('[Blackjack] Extension script started.');
 
-    let SlashCommandParser;
-    let SlashCommand;
-    let eventSource;
-    let event_types;
+    // We get the necessary functions directly from the SillyTavern context.
+    const {
+        registerSlashCommand,
+        eventSource,
+        event_types
+    } = SillyTavern.getContext();
 
-    try {
-        // We will first try to get the modules from the main script file.
-        const modules = await import('../../../../script.js');
-        SlashCommandParser = modules.SlashCommandParser;
-        SlashCommand = modules.SlashCommand;
-        
-        // We get event modules from the context, as they are known to be there.
-        const context = SillyTavern.getContext();
-        eventSource = context.eventSource;
-        event_types = context.event_types;
-        
-    } catch (e) {
-        console.error('[Blackjack] Failed to get command modules via import, falling back to getContext(). Error:', e);
-        // If the import fails, we will fall back to trying to get everything from the context.
-        const context = SillyTavern.getContext();
-        SlashCommandParser = context.SlashCommandParser;
-        SlashCommand = context.SlashCommand;
-        eventSource = context.eventSource;
-        event_types = context.event_types;
-    }
-    
-    // --- CRITICAL CHECK ---
-    // We must ensure the required modules were found before trying to use them.
-    if (!SlashCommandParser || !SlashCommand) {
-        console.error('[Blackjack] CRITICAL ERROR: Could not find SlashCommandParser or SlashCommand modules. Command registration will fail.');
-        // We will return here to prevent the TypeError.
-        return;
-    }
-    
     // --- Blackjack Game State ---
-    const MODULE_NAME = 'blackjack_game';
     let deck = [], playerHand = [], dealerHand = [], gameInProgress = false;
 
     // --- Game Logic Functions ---
@@ -73,7 +45,7 @@
         }
     };
 
-    const resolveGame = async () => {
+    const resolveGame = () => {
         const playerScore = calculateScore(playerHand);
         const dealerScore = calculateScore(dealerHand);
         let result = '';
@@ -93,78 +65,55 @@
         const dealerHandString = getHandString(dealerHand);
         gameInProgress = false;
 
-        const message = `**BLACKJACK GAME RESULT**
+        return `**BLACKJACK GAME RESULT**
 Your hand: ${getHandString(playerHand)} (Score: ${playerScore})
 Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
-***${result}***
-`;
-        await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, { mes: message });
+***${result}***`;
     };
 
     // --- Slash Command Registration ---
+    // This is the key change: we use the simpler, deprecated method.
+    // The function returns a string, which SillyTavern then renders in the chat.
 
-    SlashCommandParser.addCommandObject(SlashCommand.fromProps({
-        name: 'blackjack',
-        aliases: ['bj'],
-        helpString: 'Starts a new game of blackjack.',
-        callback: async (namedArgs, unnamedArgs) => {
-            if (gameInProgress) {
-                return 'A game is already in progress. Use /hit or /stand to continue, or wait for the current game to finish.';
-            }
-
-            gameInProgress = true;
-            deck = createDeck();
-            playerHand = [deck.pop(), deck.pop()];
-            dealerHand = [deck.pop(), deck.pop()];
-
-            const playerScore = calculateScore(playerHand);
-            const dealerCardString = getHandString([dealerHand[0]]);
-
-            const introMessage = `Let's play blackjack! You were dealt: ${getHandString(playerHand)} (Score: ${playerScore}). The dealer's visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end your turn.`;
-
-            await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, { mes: introMessage });
-            return '';
+    registerSlashCommand('blackjack', (args) => {
+        if (gameInProgress) {
+            return 'A game is already in progress. Use /hit or /stand to continue.';
         }
-    }));
+        gameInProgress = true;
+        deck = createDeck();
+        playerHand = [deck.pop(), deck.pop()];
+        dealerHand = [deck.pop(), deck.pop()];
 
-    SlashCommandParser.addCommandObject(SlashCommand.fromProps({
-        name: 'hit',
-        helpString: 'Takes another card in blackjack.',
-        callback: async (namedArgs, unnamedArgs) => {
-            if (!gameInProgress) {
-                return 'No game in progress. Use **/blackjack** to start a new game.';
-            }
+        const playerScore = calculateScore(playerHand);
+        const dealerCardString = getHandString([dealerHand[0]]);
 
-            playerHand.push(deck.pop());
-            const playerScore = calculateScore(playerHand);
+        return `Let's play blackjack! You were dealt: ${getHandString(playerHand)} (Score: ${playerScore}). The dealer's visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end your turn.`;
+    });
+
+    registerSlashCommand('hit', (args) => {
+        if (!gameInProgress) {
+            return 'No game in progress. Use /blackjack to start a new game.';
+        }
+
+        playerHand.push(deck.pop());
+        const playerScore = calculateScore(playerHand);
+
+        if (playerScore > 21) {
+            return resolveGame();
+        } else {
             const playerHandString = getHandString(playerHand);
-
-            const hitMessage = `You took another card. Your new hand is: ${playerHandString} (Score: ${playerScore}).`;
-
-            await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, { mes: hitMessage });
-
-            if (playerScore > 21) {
-                await resolveGame();
-            }
-
-            return '';
+            return `You took another card. Your new hand is: ${playerHandString} (Score: ${playerScore}).`;
         }
-    }));
+    });
 
-    SlashCommandParser.addCommandObject(SlashCommand.fromProps({
-        name: 'stand',
-        helpString: 'Ends your turn in blackjack.',
-        callback: async (namedArgs, unnamedArgs) => {
-            if (!gameInProgress) {
-                return 'No game in progress. Use **/blackjack** to start a new game.';
-            }
-
-            dealerPlay();
-            await resolveGame();
-            return '';
+    registerSlashCommand('stand', (args) => {
+        if (!gameInProgress) {
+            return 'No game in progress. Use /blackjack to start a new game.';
         }
-    }));
+
+        dealerPlay();
+        return resolveGame();
+    });
 
     console.log('[Blackjack] Slash commands registered successfully.');
-
 })();
