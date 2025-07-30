@@ -1,9 +1,7 @@
 (async function() {
     console.log('[Blackjack] Extension script started.');
 
-    // We get the necessary functions directly from the SillyTavern context.
     const {
-        registerSlashCommand,
         eventSource,
         event_types
     } = SillyTavern.getContext();
@@ -45,7 +43,7 @@
         }
     };
 
-    const resolveGame = () => {
+    const resolveGame = async () => {
         const playerScore = calculateScore(playerHand);
         const dealerScore = calculateScore(dealerHand);
         let result = '';
@@ -65,55 +63,63 @@
         const dealerHandString = getHandString(dealerHand);
         gameInProgress = false;
 
-        return `**BLACKJACK GAME RESULT**
+        const message = `**BLACKJACK GAME RESULT**
 Your hand: ${getHandString(playerHand)} (Score: ${playerScore})
 Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
 ***${result}***`;
+
+        await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, { mes: message });
     };
 
-    // --- Slash Command Registration ---
-    // This is the key change: we use the simpler, deprecated method.
-    // The function returns a string, which SillyTavern then renders in the chat.
+    // --- PROMPT INTERCEPTOR ---
+    // This function will be called before AI generation.
+    globalThis.blackjackInterceptor = async function(chat, contextSize, abort, type) {
+        if (chat.length === 0) return;
 
-    registerSlashCommand('blackjack', (args) => {
-        if (gameInProgress) {
-            return 'A game is already in progress. Use /hit or /stand to continue.';
+        const lastMessage = chat[chat.length - 1];
+        const userCommand = lastMessage.mes.trim();
+        let messageToInject = null;
+
+        if (userCommand === '/blackjack' || userCommand === '/bj') {
+            gameInProgress = true;
+            deck = createDeck();
+            playerHand = [deck.pop(), deck.pop()];
+            dealerHand = [deck.pop(), deck.pop()];
+            const playerScore = calculateScore(playerHand);
+            const dealerCardString = getHandString([dealerHand[0]]);
+            messageToInject = `Let's play blackjack! You were dealt: ${getHandString(playerHand)} (Score: ${playerScore}). The dealer's visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end your turn.`;
+            abort(true);
+        } else if (userCommand === '/hit') {
+            if (!gameInProgress) {
+                messageToInject = 'No game in progress. Use **/blackjack** to start a new game.';
+            } else {
+                playerHand.push(deck.pop());
+                const playerScore = calculateScore(playerHand);
+                const playerHandString = getHandString(playerHand);
+                messageToInject = `You took another card. Your new hand is: ${playerHandString} (Score: ${playerScore}).`;
+                if (playerScore > 21) {
+                    await resolveGame();
+                }
+            }
+            abort(true);
+        } else if (userCommand === '/stand') {
+            if (!gameInProgress) {
+                messageToInject = 'No game in progress. Use **/blackjack** to start a new game.';
+            } else {
+                dealerPlay();
+                await resolveGame();
+            }
+            abort(true);
         }
-        gameInProgress = true;
-        deck = createDeck();
-        playerHand = [deck.pop(), deck.pop()];
-        dealerHand = [deck.pop(), deck.pop()];
 
-        const playerScore = calculateScore(playerHand);
-        const dealerCardString = getHandString([dealerHand[0]]);
-
-        return `Let's play blackjack! You were dealt: ${getHandString(playerHand)} (Score: ${playerScore}). The dealer's visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end your turn.`;
-    });
-
-    registerSlashCommand('hit', (args) => {
-        if (!gameInProgress) {
-            return 'No game in progress. Use /blackjack to start a new game.';
+        if (messageToInject) {
+            // We use emit here because we are inside a different context
+            // and we can't simply return a string.
+            await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, { mes: messageToInject });
+            // We also need to remove the user's command message from the chat to not confuse the AI.
+            chat.pop();
         }
+    };
 
-        playerHand.push(deck.pop());
-        const playerScore = calculateScore(playerHand);
-
-        if (playerScore > 21) {
-            return resolveGame();
-        } else {
-            const playerHandString = getHandString(playerHand);
-            return `You took another card. Your new hand is: ${playerHandString} (Score: ${playerScore}).`;
-        }
-    });
-
-    registerSlashCommand('stand', (args) => {
-        if (!gameInProgress) {
-            return 'No game in progress. Use /blackjack to start a new game.';
-        }
-
-        dealerPlay();
-        return resolveGame();
-    });
-
-    console.log('[Blackjack] Slash commands registered successfully.');
+    console.log('[Blackjack] Interceptor loaded successfully.');
 })();
