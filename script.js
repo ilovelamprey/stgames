@@ -1,19 +1,40 @@
 (async function() {
     console.log('[Blackjack] Extension script started.');
 
-    // --- Correct way to import core modules from SillyTavern ---
-    // The path is a bit verbose, but this is the correct way to get a reference
-    // to the core SillyTavern modules from an extension script.
-    const {
-        SlashCommandParser,
-        SlashCommand,
-        SlashCommandNamedArgument,
-        SlashCommandArgument,
-        eventSource,
-        event_types
-    } = await import('../../../../script.js');
+    let SlashCommandParser;
+    let SlashCommand;
+    let eventSource;
+    let event_types;
 
-
+    try {
+        // We will first try to get the modules from the main script file.
+        const modules = await import('../../../../script.js');
+        SlashCommandParser = modules.SlashCommandParser;
+        SlashCommand = modules.SlashCommand;
+        
+        // We get event modules from the context, as they are known to be there.
+        const context = SillyTavern.getContext();
+        eventSource = context.eventSource;
+        event_types = context.event_types;
+        
+    } catch (e) {
+        console.error('[Blackjack] Failed to get command modules via import, falling back to getContext(). Error:', e);
+        // If the import fails, we will fall back to trying to get everything from the context.
+        const context = SillyTavern.getContext();
+        SlashCommandParser = context.SlashCommandParser;
+        SlashCommand = context.SlashCommand;
+        eventSource = context.eventSource;
+        event_types = context.event_types;
+    }
+    
+    // --- CRITICAL CHECK ---
+    // We must ensure the required modules were found before trying to use them.
+    if (!SlashCommandParser || !SlashCommand) {
+        console.error('[Blackjack] CRITICAL ERROR: Could not find SlashCommandParser or SlashCommand modules. Command registration will fail.');
+        // We will return here to prevent the TypeError.
+        return;
+    }
+    
     // --- Blackjack Game State ---
     const MODULE_NAME = 'blackjack_game';
     let deck = [], playerHand = [], dealerHand = [], gameInProgress = false;
