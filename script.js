@@ -46,7 +46,6 @@ import { getContext } from '../../../extensions.js';
     };
 
     const resolveGame = async () => {
-        console.log('[Blackjack] Running resolveGame...');
         const playerScore = calculateScore(playerHand);
         const dealerScore = calculateScore(dealerHand);
         let result = '';
@@ -70,13 +69,13 @@ import { getContext } from '../../../extensions.js';
 Your hand: ${getHandString(playerHand)} (Score: ${playerScore})
 Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
 ***${result}***`;
-        console.log('[Blackjack] Game resolved. Message:', message);
-        return message;
+
+        // Inject the message into the chat as a character message
+        await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, { mes: message });
     };
 
     // --- Command Handlers ---
     const startBlackjack = async () => {
-        console.log('[Blackjack] /blackjack command called. Starting new game...');
         gameInProgress = true;
         deck = createDeck();
         playerHand = [deck.pop(), deck.pop()];
@@ -84,37 +83,41 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
         const playerScore = calculateScore(playerHand);
         const dealerCardString = getHandString([dealerHand[0]]);
         const message = `Let's play blackjack! You were dealt: ${getHandString(playerHand)} (Score: ${playerScore}). The dealer's visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end your turn.`;
-        console.log('[Blackjack] New game started. Message:', message);
-        return message;
+        
+        // Inject the message into the chat as a character message
+        await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, { mes: message });
+
+        // Return an empty string to prevent any default slash command output
+        return '';
     };
 
     const hit = async () => {
-        console.log('[Blackjack] /hit command called.');
         if (!gameInProgress) {
-            console.log('[Blackjack] No game in progress.');
             return 'No game in progress. Use **/blackjack** to start a new game.';
         }
         playerHand.push(deck.pop());
         const playerScore = calculateScore(playerHand);
         const playerHandString = getHandString(playerHand);
-        let response = `You took another card. Your new hand is: ${playerHandString} (Score: ${playerScore}).`;
-        console.log('[Blackjack] Player hit. New hand message:', response);
+        let message = `You took another card. Your new hand is: ${playerHandString} (Score: ${playerScore}).`;
+
+        // Inject the message into the chat as a character message
+        await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, { mes: message });
+
         if (playerScore > 21) {
-            console.log('[Blackjack] Player bust.');
-            response += '\n' + await resolveGame();
+            await resolveGame();
         }
-        return response;
+
+        return '';
     };
 
     const stand = async () => {
-        console.log('[Blackjack] /stand command called.');
         if (!gameInProgress) {
-            console.log('[Blackjack] No game in progress.');
             return 'No game in progress. Use **/blackjack** to start a new game.';
         }
-        console.log('[Blackjack] Player stands. Dealer turn.');
         dealerPlay();
-        return await resolveGame();
+        await resolveGame();
+        
+        return '';
     };
 
     // --- Command Registration ---
