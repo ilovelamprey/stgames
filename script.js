@@ -3,8 +3,8 @@ import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
 import { getContext } from '../../../extensions.js';
 
 (async function() {
-    const { executeSlashCommandsWithOptions, name1, name2 } = SillyTavern.getContext();
-
+    const { executeSlashCommandsWithOptions, name1 } = SillyTavern.getContext();
+    const name2 = 'Lauren';
     console.log(name1);
     console.log(name2);
 
