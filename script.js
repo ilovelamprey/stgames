@@ -5,6 +5,7 @@ import { getContext } from '../../../extensions.js';
 (async function() {
     console.log('[Blackjack] Extension script started.');
 
+    // --- Core Context ---
     const { eventSource, event_types } = getContext();
 
     // --- Blackjack Game State ---
@@ -69,8 +70,8 @@ Your hand: ${getHandString(playerHand)} (Score: ${playerScore})
 Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
 ***${result}***`;
 
-        // Inject the message with a name to make it appear as a system message
-        await eventSource.emit(event_types.USER_MESSAGE_RENDERED, { mes: message, name: "Blackjack Game" });
+        // Inject the message into the chat as a character message
+        await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, { mes: message });
     };
 
     // --- Command Handlers ---
@@ -83,7 +84,10 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
         const dealerCardString = getHandString([dealerHand[0]]);
         const message = `Let's play blackjack! You were dealt: ${getHandString(playerHand)} (Score: ${playerScore}). The dealer's visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end your turn.`;
         
-        await eventSource.emit(event_types.USER_MESSAGE_RENDERED, { mes: message, name: "Blackjack Game" });
+        // Inject the message into the chat as a character message
+        await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, { mes: message });
+
+        // Return an empty string to prevent any default slash command output
         return '';
     };
 
@@ -96,11 +100,13 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
         const playerHandString = getHandString(playerHand);
         let message = `You took another card. Your new hand is: ${playerHandString} (Score: ${playerScore}).`;
 
-        await eventSource.emit(event_types.USER_MESSAGE_RENDERED, { mes: message, name: "Blackjack Game" });
+        // Inject the message into the chat as a character message
+        await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, { mes: message });
 
         if (playerScore > 21) {
             await resolveGame();
         }
+
         return '';
     };
 
@@ -110,6 +116,7 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
         }
         dealerPlay();
         await resolveGame();
+        
         return '';
     };
 
