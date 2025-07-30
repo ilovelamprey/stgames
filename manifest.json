@@ -1,7 +1,8 @@
 {
-    "display_name": "Blackjack Game",
+    "display_name": "STGames",
     "author": "Your Name",
     "version": "1.0.0",
     "js": "script.js",
-    "css": "style.css"
+    "css": "style.css",
+    "homepage": "https://github.com/ilovelamprey/stgames"
 }
