@@ -3,7 +3,10 @@ import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
 import { getContext } from '../../../extensions.js';
 
 (async function() {
-    const { executeSlashCommandsWithOptions } = SillyTavern.getContext();
+    const { executeSlashCommandsWithOptions, name1, name2 } = SillyTavern.getContext();
+
+    console.log(name1);
+    console.log(name2);
 
     const sendSysMessage = (message) => {
         executeSlashCommandsWithOptions(`/sys ${message}`);
@@ -54,13 +57,13 @@ import { getContext } from '../../../extensions.js';
         let result = '';
 
         if (playerScore > 21) {
-            result = `You bust with a score of ${playerScore}. The dealer wins!`;
+            result = `${name1} busts with a score of ${playerScore}. ${name2} wins!`;
         } else if (dealerScore > 21) {
-            result = `The dealer busts with a score of ${dealerScore}. You win!`;
+            result = `${name2} busts with a score of ${dealerScore}. ${name1} wins!`;
         } else if (playerScore > dealerScore) {
-            result = `You win with a score of ${playerScore} against the dealer's ${dealerScore}.`;
+            result = `${name1} wins with a score of ${playerScore} against ${name2}'s ${dealerScore}.`;
         } else if (dealerScore > playerScore) {
-            result = `The dealer wins with a score of ${dealerScore} against your ${playerScore}.`;
+            result = `${name2} wins with a score of ${dealerScore} against ${name1}'s ${playerScore}.`;
         } else {
             result = `It's a push! You both have a score of ${playerScore}.`;
         }
@@ -69,8 +72,8 @@ import { getContext } from '../../../extensions.js';
         gameInProgress = false;
 
         return `**BLACKJACK GAME RESULT**
-Your hand: ${getHandString(playerHand)} (Score: ${playerScore})
-Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
+${name1}'s hand: ${getHandString(playerHand)} (Score: ${playerScore})
+${name2}'s hand: ${dealerHandString} (Score: ${dealerScore})
 ***${result}***`;
     };
 
@@ -82,7 +85,7 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
         dealerHand = [deck.pop(), deck.pop()];
         const playerScore = calculateScore(playerHand);
         const dealerCardString = getHandString([dealerHand[0]]);
-        const message = `Let's play blackjack! You were dealt: ${getHandString(playerHand)} (Score: ${playerScore}). The dealer's visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end your turn.`;
+        const message = `Let's play blackjack! ${name1} was dealt: ${getHandString(playerHand)} (Score: ${playerScore}). ${name2}'s visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end ${name1}'s turn.`;
         
         sendSysMessage(message);
         return '';
@@ -96,10 +99,10 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
         const playerScore = calculateScore(playerHand);
 
         if (playerScore > 21) {
-            const finalMessage = `You took another card. Your new hand is: ${getHandString(playerHand)} (Score: ${playerScore}).\n\n` + await resolveGame();
+            const finalMessage = `${name1} took another card. ${name1}'s new hand is: ${getHandString(playerHand)} (Score: ${playerScore}).\n\n` + await resolveGame();
             sendSysMessage(finalMessage);
         } else {
-            const message = `You took another card. Your new hand is: ${getHandString(playerHand)} (Score: ${playerScore}).`;
+            const message = `${name1} took another card. ${name1}'s new hand is: ${getHandString(playerHand)} (Score: ${playerScore}).`;
             sendSysMessage(message);
         }
         return '';
