@@ -57,13 +57,13 @@ import { getContext } from '../../../extensions.js';
         let result = '';
 
         if (playerScore > 21) {
-            result = `${name1} busts with a score of ${playerScore}. ${name2} wins!`;
+            result = `${name1} busts with a score of ${playerScore}. Lauren wins!`;
         } else if (dealerScore > 21) {
-            result = `${name2} busts with a score of ${dealerScore}. ${name1} wins!`;
+            result = `Lauren busts with a score of ${dealerScore}. ${name1} wins!`;
         } else if (playerScore > dealerScore) {
-            result = `${name1} wins with a score of ${playerScore} against ${name2}'s ${dealerScore}.`;
+            result = `${name1} wins with a score of ${playerScore} against Lauren's ${dealerScore}.`;
         } else if (dealerScore > playerScore) {
-            result = `${name2} wins with a score of ${dealerScore} against ${name1}'s ${playerScore}.`;
+            result = `Lauren wins with a score of ${dealerScore} against ${name1}'s ${playerScore}.`;
         } else {
             result = `It's a push! You both have a score of ${playerScore}.`;
         }
@@ -73,7 +73,7 @@ import { getContext } from '../../../extensions.js';
 
         return `**BLACKJACK GAME RESULT**
 ${name1}'s hand: ${getHandString(playerHand)} (Score: ${playerScore})
-${name2}'s hand: ${dealerHandString} (Score: ${dealerScore})
+Lauren's hand: ${dealerHandString} (Score: ${dealerScore})
 ***${result}***`;
     };
 
@@ -85,7 +85,7 @@ ${name2}'s hand: ${dealerHandString} (Score: ${dealerScore})
         dealerHand = [deck.pop(), deck.pop()];
         const playerScore = calculateScore(playerHand);
         const dealerCardString = getHandString([dealerHand[0]]);
-        const message = `Let's play blackjack! ${name1} was dealt: ${getHandString(playerHand)} (Score: ${playerScore}). ${name2}'s visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end ${name1}'s turn.`;
+        const message = `Let's play blackjack! ${name1} was dealt: ${getHandString(playerHand)} (Score: ${playerScore}). Lauren's visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end ${name1}'s turn.`;
         
         sendSysMessage(message);
         return '';
