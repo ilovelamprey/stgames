@@ -5,7 +5,7 @@ import { getContext } from '../../../extensions.js';
 (async function() {
     console.log('[Blackjack] Extension script started.');
 
-    const { eventSource, event_types } = SillyTavern.getContext();
+    const { sendSystemMessage } = SillyTavern.getContext();
 
     // --- Blackjack Game State ---
     let deck = [], playerHand = [], dealerHand = [], gameInProgress = false;
@@ -69,8 +69,8 @@ Your hand: ${getHandString(playerHand)} (Score: ${playerScore})
 Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
 ***${result}***`;
 
-        // Inject the message with a name to make it appear as a system message
-        await eventSource.emit(event_types.USER_MESSAGE_RENDERED, { mes: message, name: "Blackjack Game" });
+        // This is the key change: a direct function call to add a system message
+        sendSystemMessage(message);
     };
 
     // --- Command Handlers ---
@@ -83,7 +83,7 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
         const dealerCardString = getHandString([dealerHand[0]]);
         const message = `Let's play blackjack! You were dealt: ${getHandString(playerHand)} (Score: ${playerScore}). The dealer's visible card is: ${dealerCardString}. Use **/hit** to take another card or **/stand** to end your turn.`;
         
-        await eventSource.emit(event_types.USER_MESSAGE_RENDERED, { mes: message, name: "Blackjack Game" });
+        sendSystemMessage(message);
         return '';
     };
 
@@ -96,7 +96,7 @@ Dealer's hand: ${dealerHandString} (Score: ${dealerScore})
         const playerHandString = getHandString(playerHand);
         let message = `You took another card. Your new hand is: ${playerHandString} (Score: ${playerScore}).`;
 
-        await eventSource.emit(event_types.USER_MESSAGE_RENDERED, { mes: message, name: "Blackjack Game" });
+        sendSystemMessage(message);
 
         if (playerScore > 21) {
             await resolveGame();
